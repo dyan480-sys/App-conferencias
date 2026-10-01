@@ -1,26 +1,63 @@
-import { useState } from "react";
+import React, { useState, useEffect } from 'react';
 import {
-  Image,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
+  View,
   TextInput,
   TouchableOpacity,
-  View,
-} from "react-native";
+  Image,
+  ScrollView,
+  SafeAreaView,
+  StatusBar,
+  Alert,
+} from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+const STORAGE_KEY = '@area_encargada';
 
 export default function HomeScreen() {
-  const [areaInput, setAreaInput] = useState<string>("");
-  const [areaGuardada, setAreaGuardada] = useState<string>("Sin asignar");
+  const [areaInput, setAreaInput] = useState<string>('');
+  const [areaGuardada, setAreaGuardada] = useState<string>('Sin asignar');
   const [disponible, setDisponible] = useState<boolean>(true);
+  const [mensajeExito, setMensajeExito] = useState<string>('');
 
-  const guardarArea = () => {
-    const valor = areaInput.trim();
-    if (valor) {
-      setAreaGuardada(valor);
-      setAreaInput("");
+  // Requerimiento 4: Carga automática al abrir o refrescar la aplicación
+  useEffect(() => {
+    cargarAreaGuardada();
+  }, []);
+
+  const cargarAreaGuardada = async () => {
+    try {
+      const valorGuardado = await AsyncStorage.getItem(STORAGE_KEY);
+      if (valorGuardado !== null) {
+        setAreaGuardada(valorGuardado);
+        setAreaInput(valorGuardado);
+      }
+    } catch (error) {
+      console.error('Error al cargar el área:', error);
+    }
+  };
+
+  // Requerimiento 3: Persistencia de Área
+  const guardarArea = async () => {
+    const textoLimpio = areaInput.trim();
+    if (!textoLimpio) {
+      Alert.alert('Atención', 'Por favor ingresa un nombre de área válido.');
+      return;
+    }
+
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, textoLimpio);
+      setAreaGuardada(textoLimpio);
+      setMensajeExito('¡Área guardada exitosamente!');
+      
+      // Ocultar mensaje de éxito después de 3 segundos
+      setTimeout(() => setMensajeExito(''), 3000);
+
+      Alert.alert('Éxito', `Área "${textoLimpio}" guardada correctamente.`);
+    } catch (error) {
+      console.error('Error al guardar el área:', error);
+      Alert.alert('Error', 'No se pudo guardar el área.');
     }
   };
 
@@ -28,15 +65,18 @@ export default function HomeScreen() {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#831843" />
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        {/* Encabezado con el nombre del área recuperado */}
         <View style={styles.header}>
           <Text style={styles.title}>Corporate Spaces</Text>
           <Text style={styles.subtitle}>Área: {areaGuardada}</Text>
         </View>
 
+        {/* Requerimiento 1: Ficha Visual del Espacio */}
         <View style={styles.card}>
           <Image
             source={{
-              uri: "https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80",
+              uri: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
             }}
             style={styles.roomImage}
             resizeMode="cover"
@@ -48,39 +88,38 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* Requerimiento 2: Inventario de Equipamiento */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>EQUIPAMIENTO</Text>
           <View style={styles.equipmentList}>
-            <Text style={styles.equipmentItem}>• Pantalla 4K de 85&quot;</Text>
-            <Text style={styles.equipmentItem}>
-              • Sistema de Micrófonos Omnidireccionales
-            </Text>
-            <Text style={styles.equipmentItem}>
-              • Cámara PTZ para videollamadas
-            </Text>
+            <Text style={styles.equipmentItem}>• Pantalla 4K de 85"</Text>
+            <Text style={styles.equipmentItem}>• Sistema de Micrófonos Omnidireccionales</Text>
+            <Text style={styles.equipmentItem}>• Cámara PTZ para videollamadas</Text>
             <Text style={styles.equipmentItem}>• Red Wi-Fi dedicada</Text>
             <Text style={styles.equipmentItem}>• Tomas Eléctricas</Text>
           </View>
         </View>
 
+        {/* Requerimiento 3: Formulario de Entrada y Guardado */}
         <View style={styles.card}>
-          <Text style={styles.sectionTitle}>ASIGNAR ÁREA</Text>
+          <Text style={styles.sectionTitle}>Área encargada:</Text>
           <TextInput
+            style={styles.input}
+            placeholder="Ej. Gerencia de Tecnología / Cocina"
+            placeholderTextColor="#f472b6"
             value={areaInput}
             onChangeText={setAreaInput}
-            placeholder="Ej. Presidencia / Sala de juntas"
-            placeholderTextColor="#9ca3af"
-            style={styles.input}
           />
-          <TouchableOpacity
-            style={styles.button}
-            onPress={guardarArea}
-            activeOpacity={0.85}
-          >
-            <Text style={styles.buttonText}>Guardar área</Text>
+          <TouchableOpacity style={styles.saveButton} onPress={guardarArea} activeOpacity={0.7}>
+            <Text style={styles.saveButtonText}>GUARDAR</Text>
           </TouchableOpacity>
+
+          {mensajeExito !== '' && (
+            <Text style={styles.successText}>{mensajeExito}</Text>
+          )}
         </View>
 
+        {/* Requerimiento 5: Estado de Disponibilidad (Verde / Rojo) */}
         <TouchableOpacity
           style={[
             styles.statusCard,
@@ -90,11 +129,12 @@ export default function HomeScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.statusTitle}>
-            {disponible ? "SALA DISPONIBLE" : "SALA EN USO"}
+            {disponible ? 'SALA DISPONIBLE' : 'SALA EN USO'}
           </Text>
-          <Text style={styles.statusIcon}>{disponible ? "🟢" : "🔴"}</Text>
+          <Text style={styles.statusIcon}>{disponible ? '🟢' : '🔴'}</Text>
           <Text style={styles.statusHint}>(Toca para cambiar estado)</Text>
         </TouchableOpacity>
+
       </ScrollView>
     </SafeAreaView>
   );
@@ -103,44 +143,43 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fdf2f8",
+    backgroundColor: '#fdf2f8',
   },
   scrollContent: {
     padding: 16,
-    paddingBottom: 32,
   },
   header: {
-    backgroundColor: "#831843",
+    backgroundColor: '#831843',
     padding: 18,
     borderRadius: 12,
     marginBottom: 16,
   },
   title: {
     fontSize: 22,
-    fontWeight: "bold",
-    color: "#ffffff",
+    fontWeight: 'bold',
+    color: '#ffffff',
   },
   subtitle: {
     fontSize: 14,
-    color: "#fbcfe8",
+    color: '#fbcfe8',
     marginTop: 4,
-    fontWeight: "600",
+    fontWeight: '600',
   },
   card: {
-    backgroundColor: "#ffffff",
+    backgroundColor: '#ffffff',
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
-    shadowColor: "#9d174d",
+    shadowColor: '#9d174d',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 6,
     elevation: 3,
-    borderColor: "#fbcfe8",
+    borderColor: '#fbcfe8',
     borderWidth: 1,
   },
   roomImage: {
-    width: "100%",
+    width: '100%',
     height: 180,
     borderRadius: 8,
     marginBottom: 12,
@@ -150,23 +189,23 @@ const styles = StyleSheet.create({
   },
   roomName: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#831843",
+    fontWeight: 'bold',
+    color: '#831843',
   },
   roomCode: {
     fontSize: 14,
-    color: "#9d174d",
-    fontWeight: "600",
+    color: '#9d174d',
+    fontWeight: '600',
   },
   roomCapacity: {
     fontSize: 14,
-    color: "#475569",
+    color: '#475569',
     marginTop: 2,
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: "bold",
-    color: "#9d174d",
+    fontWeight: 'bold',
+    color: '#9d174d',
     marginBottom: 10,
     letterSpacing: 0.5,
   },
@@ -175,56 +214,65 @@ const styles = StyleSheet.create({
   },
   equipmentItem: {
     fontSize: 14,
-    color: "#334155",
+    color: '#334155',
   },
   input: {
     borderWidth: 1,
-    borderColor: "#f9a8d4",
-    backgroundColor: "#fff1f2",
-    borderRadius: 10,
+    borderColor: '#f472b6',
+    borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: "#1f2937",
+    fontSize: 15,
+    backgroundColor: '#fff1f2',
     marginBottom: 12,
+    color: '#831843',
   },
-  button: {
-    backgroundColor: "#be185d",
-    borderRadius: 10,
+  saveButton: {
+    backgroundColor: '#db2777',
     paddingVertical: 12,
-    alignItems: "center",
+    borderRadius: 8,
+    alignItems: 'center',
   },
-  buttonText: {
-    color: "#ffffff",
-    fontWeight: "700",
+  saveButtonText: {
+    color: '#ffffff',
+    fontWeight: 'bold',
     fontSize: 14,
+  },
+  successText: {
+    color: '#059669',
+    fontSize: 13,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 8,
   },
   statusCard: {
     borderRadius: 12,
     padding: 18,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 24,
-    borderWidth: 1,
   },
   statusAvailable: {
-    backgroundColor: "#ecfdf5",
-    borderColor: "#86efac",
+    backgroundColor: '#dcfce7',
+    borderWidth: 2,
+    borderColor: '#22c55e',
   },
   statusInUse: {
-    backgroundColor: "#fef2f2",
-    borderColor: "#fca5a5",
+    backgroundColor: '#fee2e2',
+    borderWidth: 2,
+    borderColor: '#ef4444',
   },
   statusTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#1f2937",
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#0f172a',
   },
   statusIcon: {
-    fontSize: 32,
-    marginVertical: 8,
+    fontSize: 26,
+    marginVertical: 4,
   },
   statusHint: {
-    color: "#6b7280",
     fontSize: 12,
+    color: '#64748b',
   },
 });
