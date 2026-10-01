@@ -76,7 +76,7 @@ export default function HomeScreen() {
         <View style={styles.card}>
           <Image
             source={{
-              uri: 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&w=800&q=80',
+              uri: 'https://img.magnific.com/foto-gratis/vista-sala-cine-3d_23-2150866047.jpg?semt=ais_test_b&w=740&q=80',
             }}
             style={styles.roomImage}
             resizeMode="cover"
